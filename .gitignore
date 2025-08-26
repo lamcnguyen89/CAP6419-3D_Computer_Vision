@@ -205,3 +205,73 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Machine Learning: Ignore large file types and data/model artifacts
+# Datasets
+*.csv
+*.tsv
+*.data
+*.dat
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.joblib
+*.mat
+
+# Images/Videos
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tif
+*.tiff
+*.webp
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+
+# Audio
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Model files
+*.ckpt
+*.pth
+*.pt
+*.pb
+*.onnx
+*.tflite
+*.h5
+*.hdf5
+*.weights
+*.caffemodel
+*.mlmodel
+*.joblib
+*.sav
+*.pkl
+
+# TensorBoard logs
+logs/
+events.out.tfevents.*
+
+# Miscellaneous large files
+*.tar
+*.tar.gz
+*.zip
+*.7z
+*.rar
+*.gz
+*.xz
+*.bz2
