@@ -1,5 +1,5 @@
 % CAP6419: 3D Computer Vision
-% Assignment 01: Chapter 
+% Assignment 01: Chapter 2 of Textbook: Multiple View Geometry in Computer Vision (2nd Edition)
 
 clc, clearvars
 
@@ -16,27 +16,27 @@ y=0;
 % find  the  distances  from  the  origin  to  both  m  and  l  and  try  to  see  if  you  can  identify  a relationship.)
 
 
-%ANSWER TO QUESTION 01:
-% In Projective Geometry, the point m ~ [a b c]T corresponds to the line l ~ [a b c]T. 
-% A projective point m ~ [a b c]T corresponds to the Euclidean point M : (a/c, b/c) provided c ≠ 0.
-% A projective line l ~ [a b c]T corresponds to the Euclidean line L: ax + by + c = 0
+        %ANSWER TO QUESTION 01:
+        % In Projective Geometry, the point m ~ [a b c]T corresponds to the line l ~ [a b c]T. 
+        % A projective point m ~ [a b c]T corresponds to the Euclidean point M : (a/c, b/c) provided c ≠ 0.
+        % A projective line l ~ [a b c]T corresponds to the Euclidean line L: ax + by + c = 0
 
-% The distance from the origin to the line L is given by:
+        % The distance from the origin to the line L is given by:
 
-origin_homogeneous = [x; y; 1];  % Origin in homogeneous coordinates (projective point)
-euclidean_origin = [x; y];  % Origin in Euclidean coordinates
+        origin_homogeneous = [x; y; 1];  % Origin in homogeneous coordinates (projective point)
+        euclidean_origin = [x; y];  % Origin in Euclidean coordinates
 
-euclidean_point = [a/c; b/c];  % Convert projective point m to Euclidean coordinates
+        euclidean_point = [a/c; b/c];  % Convert projective point m to Euclidean coordinates
 
-% Distance of euclidean point from euclidean origin
-distance_from_origin_to_point = sqrt((euclidean_point(1) - euclidean_origin(1))^2 + (euclidean_point(2) - euclidean_origin(2))^2)
+        % Distance of euclidean point from euclidean origin
+        distance_from_origin_to_point = sqrt((euclidean_point(1) - euclidean_origin(1))^2 + (euclidean_point(2) - euclidean_origin(2))^2)
 
-% Distance from the origin to the line L
-distance_from_origin_to_line = abs(c) / sqrt(a^2 + b^2)
+        % Distance from the origin to the line L
+        distance_from_origin_to_line = abs(c) / sqrt(a^2 + b^2)
 
-% Distance from origin to projective point and distance from origin to projective line are INVERSES to each other:
+        % Distance from origin to projective point and distance from origin to projective line are INVERSES to each other:
 
-inverse_relationship = distance_from_origin_to_point * distance_from_origin_to_line % Should equal to 1
+        inverse_relationship = distance_from_origin_to_point * distance_from_origin_to_line % Should equal to 1
 
 
 
@@ -46,46 +46,62 @@ inverse_relationship = distance_from_origin_to_point * distance_from_origin_to_l
 %What is the  dual line to this ideal point? What can you say about this line? What is the dual point to the line 
 %at infinity? (You must show all your work.) 
 
-% ANSWER TO QUESTION 02:
 
-% In a projective plane P2, a point at infinity (the ideal point) is any point where the third homogenous coordinate is 0. To find the ideal point, we need to find the intersection of line l ~  [5  -7  3]T with the line at infinity l_inf ~ [0 0 1]T.
+        % ANSWER TO QUESTION 02:
 
-% The intersection can be found by solving the system of equations given by the two lines:
+        % In a projective plane P2, a point at infinity (the ideal point) is any point where the third homogenous coordinate is 0. To find the ideal point, we need to find the intersection of line l ~  [5  -7  3]T with the line at infinity l_inf ~ [0 0 1]T.
 
-l_question_02 = [5; -7; 3]  % Line l in homogeneous coordinates
-l_inf_question_02 = [0; 0; 1]  % Line at infinity in homogeneous coordinates
+        % The intersection can be found by solving the system of equations given by the two lines:
 
-% To find the intersection point, we can use the cross product of the two lines:
-ideal_point = cross(l_question_02, l_inf_question_02)  % Ideal point in homogeneous coordinates
+        l_question_02 = [5; -7; 3]  % Line l in homogeneous coordinates
+        l_inf_question_02 = [0; 0; 1]  % Line at infinity in homogeneous coordinates
 
-% The ideal point should equal = [-7; -5; 0]
-ideal_point_expected = [-7; -5; 0];
+        % To find the intersection point, we can use the cross product of the two lines:
+        ideal_point = cross(l_question_02, l_inf_question_02)  % Ideal point in homogeneous coordinates
 
-    % Verify the result
-    is_equal = isequal(ideal_point, ideal_point_expected)  % Should be true'
+        % The ideal point should equal = [-7; -5; 0]
+        ideal_point_expected = [-7; -5; 0];
 
-% The dual line to this ideal point will have the same vector representation:
+            % Verify the result
+            is_equal = isequal(ideal_point, ideal_point_expected)  % Should be true'
 
-dual_line = ideal_point
+        % The dual line to this ideal point will have the same vector representation:
 
-% In projective geometry, due to duality, the ideal point and dual line will have the same representation.
-% the dual line will cross at the origin (0,0) in Euclidean Geometry
-% It's euclidean equation is: y = (5/7)x + 3/7
+        dual_line = ideal_point
 
-%Due to the law of duality, the dual point will have the same representation of the line at infinity, therefore:
-dual_point_at_infinity = l_inf_question_02  % Dual point to the line at infinity
+        % In projective geometry, due to duality, the ideal point and dual line will have the same representation.
+        % the dual line will cross at the origin (0,0) in Euclidean Geometry
+        % It's euclidean equation is: y = (5/7)x + 3/7
 
-
-
-
-% QUESTION 03: (10 pts.) (Isomorphism of Incidence) Consider the two lines l1~[5, -7, 3]T and
-% l2~[2, 5, -3]T. What is the dual point m corresponding to the line through the points dual to
-% the lines l1 and l2? Show how you would find the answer and verify mathematically based on
-% your answer in Q1. What can you say about m? (Explain)
-% How does your answer to Q3 explain the answer to Q2? (Hint: Use the x and y axes as the two
-% lines.)
+        %Due to the law of duality, the dual point will have the same representation of the line at infinity, therefore:
+        dual_point_at_infinity = l_inf_question_02  % Dual point to the line at infinity
 
 
+
+
+
+% QUESTION 03: (10 pts.) (Isomorphism of Incidence) Consider the two lines l1~[5, -7, 3]T and l2~[-3, -5, 2]T. 
+% What is the dual point m corresponding to the line through the points dual to the lines l1 and l2?
+% Show how you would find the answer and verify mathematically based on your answer in Q1. What can you say about m? (Explain)
+% How does your answer to Q3 explain the answer to Q2? (Hint: Use the x and y axes as the two lines.)
+
+
+        % ANSWER TO QUESTION 03:
+
+        L_1_Question_03 = [5; -7; 3];  % Line l1 in homogeneous coordinates
+        L_2_Question_03 = [-3; -5; 2];  % Line l2 in homogeneous coordinates
+
+        % Find the dual point m corresponding to the line through the points dual to the lines l1 and l2 by doing the cross product
+        dual_point_m_Question_03 = cross(L_1_Question_03, L_2_Question_03)  % Dual point in homogeneous coordinates
+
+        expected_dual_point_m_Question_03 = [1; -19; -46];
+
+        % Verify the result
+        is_equal_question_03 = isequal(dual_point_m_Question_03, expected_dual_point_m_Question_03)  % Should be true
+
+        % The answer to Question 3 answers Question 2 
+
+        % Question 3 demonstrates a general method for finding the point of intersections between two lines in a projective space. The dot product is used. Question 2 is just about finding the point of intersection between a line and a line that represents infinity.
 
 
 
@@ -114,3 +130,4 @@ dual_point_at_infinity = l_inf_question_02  % Dual point to the line at infinity
 % (If not, do not worry...you will not lose points for not giving an explanation.) 
 
 
+        % ANSWER TO QUESTION 04:
