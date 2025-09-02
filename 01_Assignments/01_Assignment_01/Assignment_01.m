@@ -6,6 +6,8 @@ clc, clearvars
 a=1
 b=2
 c=3
+x=0;
+y=0;
 
 
 % QUESTION 01:  (10 pts.) We learned about the duality of   points and lines in the projective space  
@@ -14,15 +16,64 @@ c=3
 % find  the  distances  from  the  origin  to  both  m  and  l  and  try  to  see  if  you  can  identify  a relationship.)
 
 
+%ANSWER TO QUESTION 01:
+% In Projective Geometry, the point m ~ [a b c]T corresponds to the line l ~ [a b c]T. 
+% A projective point m ~ [a b c]T corresponds to the Euclidean point M : (a/c, b/c) provided c ≠ 0.
+% A projective line l ~ [a b c]T corresponds to the Euclidean line L: ax + by + c = 0
+
+% The distance from the origin to the line L is given by:
+
+origin_homogeneous = [x; y; 1];  % Origin in homogeneous coordinates (projective point)
+euclidean_origin = [x; y];  % Origin in Euclidean coordinates
+
+euclidean_point = [a/c; b/c];  % Convert projective point m to Euclidean coordinates
+
+% Distance of euclidean point from euclidean origin
+distance_from_origin_to_point = sqrt((euclidean_point(1) - euclidean_origin(1))^2 + (euclidean_point(2) - euclidean_origin(2))^2)
+
+% Distance from the origin to the line L
+distance_from_origin_to_line = abs(c) / sqrt(a^2 + b^2)
+
+% Distance from origin to projective point and distance from origin to projective line are INVERSES to each other:
+
+inverse_relationship = distance_from_origin_to_point * distance_from_origin_to_line % Should equal to 1
 
 
 
 
-% QUESTION 02: (10 pts.)  Determine  the  point  at  infinity  (the  ideal  point)  on  the  line  l ~  [5  -7  3]T  .  What is the 
-%dual line to this ideal point? What can you say about this line? What is the dual point to the line 
+
+% QUESTION 02: (10 pts.)  Determine  the  point  at  infinity  (the  ideal  point)  on  the  line  l ~  [5  -7  3]T  .  
+%What is the  dual line to this ideal point? What can you say about this line? What is the dual point to the line 
 %at infinity? (You must show all your work.) 
 
+% ANSWER TO QUESTION 02:
 
+% In a projective plane P2, a point at infinity (the ideal point) is any point where the third homogenous coordinate is 0. To find the ideal point, we need to find the intersection of line l ~  [5  -7  3]T with the line at infinity l_inf ~ [0 0 1]T.
+
+% The intersection can be found by solving the system of equations given by the two lines:
+
+l_question_02 = [5; -7; 3]  % Line l in homogeneous coordinates
+l_inf_question_02 = [0; 0; 1]  % Line at infinity in homogeneous coordinates
+
+% To find the intersection point, we can use the cross product of the two lines:
+ideal_point = cross(l_question_02, l_inf_question_02)  % Ideal point in homogeneous coordinates
+
+% The ideal point should equal = [-7; -5; 0]
+ideal_point_expected = [-7; -5; 0];
+
+    % Verify the result
+    is_equal = isequal(ideal_point, ideal_point_expected)  % Should be true'
+
+% The dual line to this ideal point will have the same vector representation:
+
+dual_line = ideal_point
+
+% In projective geometry, due to duality, the ideal point and dual line will have the same representation.
+% the dual line will cross at the origin (0,0) in Euclidean Geometry
+% It's euclidean equation is: y = (5/7)x + 3/7
+
+%Due to the law of duality, the dual point will have the same representation of the line at infinity, therefore:
+dual_point_at_infinity = l_inf_question_02  % Dual point to the line at infinity
 
 
 
@@ -33,6 +84,8 @@ c=3
 % your answer in Q1. What can you say about m? (Explain)
 % How does your answer to Q3 explain the answer to Q2? (Hint: Use the x and y axes as the two
 % lines.)
+
+
 
 
 
