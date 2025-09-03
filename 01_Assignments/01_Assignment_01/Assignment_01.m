@@ -176,4 +176,6 @@ y=0;
             end
         end
 
-
+        % Conclusion:
+        % When running the code, it seems that the intersection points are always the same points at infinity, regardless of the circle's center or radius
+        % All circles in projective geometry intersect the line at infinity at the same two points: [1; 1i; 0] and [1; -1i; 0]

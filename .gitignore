@@ -275,3 +275,47 @@ events.out.tfevents.*
 *.gz
 *.xz
 *.bz2
+
+# MATLAB
+# MATLAB temporary files
+*.asv
+*.autosave
+
+# MATLAB compiled files
+*.mex*
+*.p
+
+# MATLAB cache files
+*.slxc
+
+# MATLAB session files
+matlab_crash_dump.*
+
+# MATLAB backup files
+*~
+
+# MATLAB Simulink cache and temporary files
+slprj/
+*.slxc
+*.mdlp
+*.sldd
+*.slddc
+
+# MATLAB Code Generation
+codegen/
+
+# MATLAB Profiler
+profile_results/
+
+# MATLAB App Designer temporary files
+*.mlappinstall
+*.mltbx
+
+# MATLAB Live Scripts backup
+*.mlx~
+
+# MATLAB Figure files (optional - uncomment if you don't want to version control figures)
+# *.fig
+
+# MATLAB workspace files (optional - uncomment if you don't want to version control workspaces)
+# *.mat
