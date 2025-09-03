@@ -114,9 +114,8 @@ y=0;
 %    C ~ [b  c  e]
 %        [d  e  f]
 %
-% As we learned in the lectures a point m~[x y 1]T is on C iff mTCm = 0. If a = c and b = 0, 
-% then C has only 3 d.o.f. and becomes a circle (in the usual Euclidean sense that you are familiar 
-% with). 
+% As we learned in the lectures a point m~[x y 1]T is on C if mTCm = 0. If a = c and b = 0, 
+% then C has only 3 d.o.f. and becomes a circle (in the usual Euclidean sense that you are familiar with). 
 % For this question, you are required to write a Matlab function that would allow the user to input 
 % random values for the parameters a = c, d, e, and f (with b assumed equal to zero), and would  
 % output the intersection points of the circle C with the line at infinity l~[0 0 1]T. 
@@ -131,3 +130,49 @@ y=0;
 
 
         % ANSWER TO QUESTION 04:
+
+        % Function to compute intersection points of a circle with the line at infinity
+        function intersection_points = circle_infinity_intersection(a, d, e, f)
+            % a = c, b = 0 for a circle
+            % Circle matrix:
+            %   [a  0  d]
+            %   [0  a  e]
+            %   [d  e  f]
+            C = [a 0 d; 0 a e; d e f];
+
+            % Line at infinity in homogeneous coordinates
+            l_inf = [0; 0; 1];
+
+            % Any point at infinity has the form m = [x; y; 0]
+            % Plug into m' * C * m = 0:
+            % [x y 0] * C * [x; y; 0] = 0
+            % => [x y 0] * [a 0 d; 0 a e; d e f] * [x; y; 0]
+            % => [x y 0] * [a*x; a*y; d*x + e*y]
+            % => a*x^2 + a*y^2 = 0
+            % => a(x^2 + y^2) = 0
+
+            % If a ~= 0: x^2 + y^2 = 0
+            % Solutions: x = t, y = i*t or x = t, y = -i*t (i = sqrt(-1)), t ≠ 0
+            % If a == 0: The conic is degenerate at infinity
+
+            if a == 0
+                intersection_points = 'Degenerate: The circle is at infinity (no finite intersection)';
+            else
+                syms t
+                % Two points at infinity (complex conjugate directions)
+                m1 = [1; 1i; 0];
+                m2 = [1; -1i; 0];
+                intersection_points = [m1, m2];
+            end
+        end
+
+        % Example usage:
+        % Try several random values for a, d, e, f
+        disp('Intersection points for a=2, d=1, e=3, f=4:')
+        disp(circle_infinity_intersection(2, 1, 3, 4))
+
+        disp('Intersection points for a=5, d=0, e=0, f=1:')
+        disp(circle_infinity_intersection(5, 0, 0, 1))
+
+        disp('Intersection points for a=0, d=1, e=1, f=1:')
+        disp(circle_infinity_intersection(0, 1, 1, 1))
