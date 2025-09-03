@@ -131,6 +131,17 @@ y=0;
 
         % ANSWER TO QUESTION 04:
 
+        % Example usage:
+        % Try several random values for a, d, e, f
+        disp('Intersection points for a=2, d=1, e=3, f=4:')
+        disp(circle_infinity_intersection(2, 1, 3, 4))
+
+        disp('Intersection points for a=5, d=0, e=0, f=1:')
+        disp(circle_infinity_intersection(5, 0, 0, 1))
+
+        disp('Intersection points for a=0, d=1, e=1, f=1:')
+        disp(circle_infinity_intersection(0, 1, 1, 1))
+
         % Function to compute intersection points of a circle with the line at infinity
         function intersection_points = circle_infinity_intersection(a, d, e, f)
             % a = c, b = 0 for a circle
@@ -158,7 +169,6 @@ y=0;
             if a == 0
                 intersection_points = 'Degenerate: The circle is at infinity (no finite intersection)';
             else
-                syms t
                 % Two points at infinity (complex conjugate directions)
                 m1 = [1; 1i; 0];
                 m2 = [1; -1i; 0];
@@ -166,13 +176,4 @@ y=0;
             end
         end
 
-        % Example usage:
-        % Try several random values for a, d, e, f
-        disp('Intersection points for a=2, d=1, e=3, f=4:')
-        disp(circle_infinity_intersection(2, 1, 3, 4))
 
-        disp('Intersection points for a=5, d=0, e=0, f=1:')
-        disp(circle_infinity_intersection(5, 0, 0, 1))
-
-        disp('Intersection points for a=0, d=1, e=1, f=1:')
-        disp(circle_infinity_intersection(0, 1, 1, 1))
