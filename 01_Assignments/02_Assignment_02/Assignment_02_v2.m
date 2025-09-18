@@ -42,15 +42,14 @@ function T = proj2metric_square(coords)
     
     % Return the product of the rectification matrices
     T = H_P*H_A;
-endfunction
+end
 
 % Function to perform affine rectification
 function T = proj2affine(coords)
     T = eye(3);
     
     if (length(coords) < 4)
-        fprintf(1, "Insufficient points (%d): " \\
-            "provide at least 4 points for affine rectification", npoints); 
+        fprintf(1, 'Insufficient points (%d):provide at least 4 points for affine rectification', npoints);
     else
         % Assume rectification using parallel line set
         l1 = cross(coords(:,1), coords(:,2));
@@ -65,8 +64,8 @@ function T = proj2affine(coords)
         l_inf = cross(v(:,1), v(:,2));
         l_inf ./= l_inf(3);
         T(3,:) = l_inf';
-    endif
-endfunction
+    end
+end
 
 % Function to perform metric rectification
 function T = affine2metric_orthos(l1, m1, l2, m2)
@@ -81,23 +80,23 @@ function T = affine2metric_orthos(l1, m1, l2, m2)
     
     % Find s and S from the null space of the constraints matrix
     s = null(ortho_constraints);
-    S = [s(1) s(2); s(2) s(3)]
+    S = [s(1) s(2); s(2) s(3)];
 
     % Produces "error: chol: matrix not positive definite" on some cases
     % Get K from the Cholesky decomposition of S
     %K = chol(S);
 
     % Recover K using SVD of S    
-    [u, sigma, v] = svd(S)
-    K = u*sqrt(sigma)*u'
+    [u, sigma, v] = svd(S);
+    K = u*sqrt(sigma)*u';
     T(1:2,1:2) = K;
     T = inv(T);
-endfunction
+end
 
 %% Example usage of proj2metric function for image rectification
 function demo_proj2metric_rectification()
     % Load an image (replace with your image path)
-    img = imread('Crop_Circle.jpg'); % Using the crop circle image from your materials
+    img = imread('Homework 2_Materials/Crop_Circle.jpg'); % Using the crop circle image from your materials
     
     % Display the original image
     figure(1);
@@ -164,7 +163,7 @@ end
 %% Alternative function for automatic rectification using predefined coordinates
 function demo_proj2metric_automatic()
     % Load an image
-    img = imread('Crop_Circle.jpg');
+    img = imread('Homework 2_Materials/Crop_Circle.jpg');
     
     % Define coordinates of a quadrilateral that should be a square
     % (you would measure these from your specific image)
