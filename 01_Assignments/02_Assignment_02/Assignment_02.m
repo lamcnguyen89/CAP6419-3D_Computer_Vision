@@ -50,6 +50,7 @@ clc, clearvars
 
 % The most challenging part is computing the metric rectification, which requires identifying the absolute conic or circular points in the image.
 
+% Source for explaining Affine and Metric Rectification: https://medium.com/antaeus-ar/undoing-perspective-affine-and-metric-rectification-of-images-stratification-part-1-238323171839
 
 %% SETUP:
 
@@ -64,7 +65,7 @@ addpath(genpath('.')); % Add current directory and subdirectories
 
 %% IMAGE IMPORT AND PREPROCESSING
 % Load test image
-img_path = 'path/to/your/image.jpg'; % Replace with actual path
+img_path = 'Homework 2_Materials/Crop_Circle.jpg'; % Crop circle image for testing
 img = imread(img_path);
 
 % Convert to grayscale if needed
