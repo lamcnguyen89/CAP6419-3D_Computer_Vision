@@ -65,7 +65,18 @@ addpath(genpath('.')); % Add current directory and subdirectories
 
 %% IMAGE IMPORT AND PREPROCESSING
 % Load test image
-img_path = 'Homework 2_Materials/Crop_Circle.jpg'; % Crop circle image for testing
+% Try to get the directory where this script is located (works in newer MATLAB versions)
+try
+    script_dir = fileparts(mfilename('fullpath'));
+    img_path = fullfile(script_dir, 'Homework 2_Materials', 'Crop_Circle.jpg');
+catch
+    % Fallback for older MATLAB versions - assume relative path
+    img_path = fullfile('Homework 2_Materials', 'Crop_Circle.jpg');
+end
+
+if ~exist(img_path, 'file')
+    error('Image file not found: %s\nAvailable images in Homework 2_Materials:\n- Building.jpg\n- Crop_Circle.jpg\n- desk.jpg\n- UCF SU.jpg\n\nMake sure you are running the script from: d:\\SoftwareDev\\CAP6419-3D_Computer_Vision\\01_Assignments\\02_Assignment_02\\', img_path);
+end
 img = imread(img_path);
 
 % Convert to grayscale if needed
@@ -157,94 +168,3 @@ figure(3);
 imshow(img_metric);
 title('After Metric Rectification');
 
-
-
-%% HELPER FUNCTIONS:
-
-
-function line_params = fitLine(points)
-    % Fit line to points using least squares
-    % points: [x, y, 1] homogeneous coordinates
-    % Returns: line parameters [a, b, c] where ax + by + c = 0
-    
-    A = points(:, 1:2);
-    b = -ones(size(points, 1), 1);
-    line_params = [A \ b; 1];
-    line_params = line_params / norm(line_params(1:2));
-end
-
-function conic = fitConic(points)
-    % Fit conic to 5 or more points
-    % Based on the method from textbook page 31
-    
-    x = points(:, 1);
-    y = points(:, 2);
-    
-    % Design matrix for conic: ax^2 + bxy + cy^2 + dx + ey + f = 0
-    A = [x.^2, x.*y, y.^2, x, y, ones(length(x), 1)];
-    
-    % Solve homogeneous system using SVD
-    [~, ~, V] = svd(A);
-    conic_vec = V(:, end);
-    
-    % Reshape to matrix form
-    conic = [conic_vec(1), conic_vec(2)/2, conic_vec(4)/2;
-             conic_vec(2)/2, conic_vec(3), conic_vec(5)/2;
-             conic_vec(4)/2, conic_vec(5)/2, conic_vec(6)];
-end
-
-function H = computeAffineRectification(vanishing_point)
-    % Compute homography that sends vanishing point to infinity
-    % This is a simplified version - you may need to handle multiple vanishing points
-    
-    vp = vanishing_point(1:2) / vanishing_point(3);
-    
-    % Simple transformation that moves vanishing point to infinity
-    H = [1, 0, 0;
-         0, 1, 0;
-         vp(1)/1000, vp(2)/1000, 1]; % Scale factors may need adjustment
-end
-
-function H_metric = computeMetricRectification(conic, H_affine)
-    % Compute metric rectification using the dual absolute conic
-    % This is the most complex part and requires careful implementation
-    
-    % Transform the conic using the affine rectification
-    conic_transformed = H_affine' * conic * H_affine;
-    
-    % Extract the image of the absolute conic
-    % and compute the remaining similarity transformation
-    
-    % Simplified placeholder - actual implementation requires
-    % solving for the circular points and orthogonal constraints
-    H_metric = eye(3); % Placeholder
-end
-
-function img_out = applyHomography(img, H)
-    % Apply homography to image
-    tform = projective2d(H');
-    img_out = imwarp(img, tform);
-end
-
-
-%% IMPLEMENT WORKFLOW:
-
-function runRectification()
-    % Load image
-    img = imread('your_test_image.jpg');
-    
-    % Display for point selection
-    figure; imshow(img); title('Select points for rectification');
-    
-    % Perform affine rectification
-    img_affine = performAffineRectification(img);
-    
-    % Perform metric rectification
-    img_metric = performMetricRectification(img_affine);
-    
-    % Display results
-    figure;
-    subplot(1,3,1); imshow(img); title('Original');
-    subplot(1,3,2); imshow(img_affine); title('Affine Rectified');
-    subplot(1,3,3); imshow(img_metric); title('Metric Rectified');
-end
