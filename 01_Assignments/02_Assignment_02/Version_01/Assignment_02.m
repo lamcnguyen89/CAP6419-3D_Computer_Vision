@@ -1,44 +1,6 @@
 % CAP6419: 3D Computer Vision
 % Assignment 02: Chapter 3 of Textbook: Multiple View Geometry in Computer Vision (2nd Edition)
 
-%% HOW TO USE THIS CODE:
-%
-% This script performs affine and metric rectification on an image.
-% 
-% BEFORE RUNNING:
-% 1. Make sure you are in the correct directory:
-%    d:\SoftwareDev\CAP6419-3D_Computer_Vision\01_Assignments\02_Assignment_02\
-% 2. Ensure you have the required functions in the same directory:
-%    - fitLine.m
-%    - applyHomography.m
-%    - computeAffineRectification.m
-%    - computeMetricRectification.m
-%    - fitConic.m
-%
-% WHEN RUNNING:
-% 1. The script will display an image and prompt you to select points
-% 2. DO NOT CLOSE THE FIGURE WINDOW during point selection
-% 3. Follow the on-screen instructions carefully
-% 4. Click points with your mouse, then press ENTER when done
-% 5. If you make a mistake, stop the script (Ctrl+C) and run it again
-%
-% POINT SELECTION GUIDE:
-% - Parallel Lines: Select points along lines that are parallel in real world
-%   but appear to converge in the image (e.g., building edges, table sides)
-% - Circular Object: Select 5+ points around the circumference of a circle
-%   that appears as an ellipse in the image (e.g., Pegasus logo, clock)
-%
-% TROUBLESHOOTING:
-% - If you get "Interrupted by figure deletion" error: Keep figure window open
-% - If you get "Index exceeds matrix dimensions": Select enough points
-% - If results look wrong: Try selecting different/better points
-%
-
-
-% In this assignment, you are expected to take your own test images and work with them. Write Matlab code to perform:
-
-    % 1. Affine rectification of an imaged planar surface
-    % 2. Metric rectification of an imaged planar surface
 
 %% ASSIGNMENT PARAMETERS
 % Submit your matlab codes and results on the test images together with a report in a
