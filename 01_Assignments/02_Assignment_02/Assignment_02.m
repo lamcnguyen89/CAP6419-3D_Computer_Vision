@@ -328,10 +328,17 @@ end
 fprintf('\n=== METHOD 2: CIRCULAR OBJECT (Recommended) ===\n');
 fprintf('Select points on circular object (at least 5 points)\n');
 fprintf('1. Look for a circular object in the affine-rectified image\n');
-fprintf('2. Click points around the circumference of the circle\n');
-fprintf('3. Try to select at least 5 points distributed evenly\n');
-fprintf('4. Press ENTER when done\n');
-fprintf('5. DO NOT close the figure window!\n\n');
+fprintf('2. The object should appear roughly circular (not too elongated)\n');
+fprintf('3. Click points around the circumference of the circle\n');
+fprintf('4. Try to select 5-8 points distributed evenly around the circle\n');
+fprintf('5. Make sure points are spread out (not clustered in one area)\n');
+fprintf('6. Press ENTER when done\n');
+fprintf('7. DO NOT close the figure window!\n\n');
+fprintf('TIPS FOR GOOD CIRCLE SELECTION:\n');
+fprintf('- Choose an object that looks reasonably circular in Figure 2\n');
+fprintf('- Spread points around the entire circumference (like clock positions)\n');
+fprintf('- Avoid selecting points too close together\n');
+fprintf('- If the object is very elongated, try a different circular object\n\n');
 
 % Ensure figure 2 is active
 figure(2);
@@ -362,13 +369,66 @@ fprintf('Great! You selected %d points on the circular object.\n\n', length(x_ci
 
 % Step 2.2: Find the circular points (for Method 2)
 % Fit a conic to the circular object
+fprintf('\nFitting conic to selected points...\n');
+fprintf('Points selected: ');
+for i = 1:length(x_circle)
+    fprintf('[%.1f,%.1f] ', x_circle(i), y_circle(i));
+end
+fprintf('\n');
+
+% Check if points are well distributed
+if length(x_circle) >= 5
+    % Calculate the spread of points
+    x_range = max(x_circle) - min(x_circle);
+    y_range = max(y_circle) - min(y_circle);
+    fprintf('Point spread: X-range=%.1f, Y-range=%.1f\n', x_range, y_range);
+    
+    if x_range < 50 || y_range < 50
+        warning('Selected points have small spread. This may result in poor conic fitting.');
+        fprintf('Try selecting points more spread out around the circle.\n');
+    end
+    
+    % Check if points form roughly circular pattern
+    center_x = mean(x_circle);
+    center_y = mean(y_circle);
+    distances = sqrt((x_circle - center_x).^2 + (y_circle - center_y).^2);
+    distance_std = std(distances);
+    distance_mean = mean(distances);
+    
+    fprintf('Circle analysis: center=[%.1f,%.1f], mean_radius=%.1f, std_radius=%.1f\n', ...
+            center_x, center_y, distance_mean, distance_std);
+    
+    if distance_std / distance_mean > 0.3
+        warning('Points do not form a consistent circle (high radius variation).');
+        fprintf('Coefficient of variation: %.2f (should be < 0.3)\n', distance_std / distance_mean);
+        fprintf('Try selecting points more carefully around a circular object.\n');
+    end
+end
+
 conic_matrix = fitConic([x_circle, y_circle]);
+
+% Check if the fitted conic is reasonable
+fprintf('\nConic matrix condition number: %.2e\n', cond(conic_matrix));
+if cond(conic_matrix) > 1e10
+    warning('Fitted conic is poorly conditioned. Consider re-selecting points.');
+end
 
 % The image of the circular points are the intersection of the line at infinity
 % with the image of the absolute conic
 
 % Step 2.3: Compute metric rectification homography
 % This removes the remaining similarity transformation after affine rectification
+
+% Check if we should proceed with metric rectification
+% Always proceed with metric rectification - user wants to see results regardless
+fprintf('Proceeding with metric rectification...\n');
+fprintf('Conic matrix condition number: %.2e\n', cond(conic_matrix));
+fprintf('Conic matrix determinant: %.2e\n', abs(det(conic_matrix)));
+
+if cond(conic_matrix) > 1e10
+    fprintf('Note: Conic matrix has high condition number, but proceeding anyway.\n');
+end
+
 H_metric = computeMetricRectification(conic_matrix, H_affine);
 
 fprintf('\nDEBUG: Metric rectification homography H_metric:\n');
@@ -392,11 +452,58 @@ if cond_complete > 1e12
     img_metric = applyHomography(img_affine, H_metric);
 else
     fprintf('Applying complete transformation to original image...\n');
-    img_metric = applyHomography(img, H_complete);
+    
+    % Check where the image corners will be mapped
+    img_corners = [1, 1, size(img,2), size(img,2); 
+                   1, size(img,1), 1, size(img,1); 
+                   1, 1, 1, 1];
+    transformed_corners = H_complete * img_corners;
+    
+    % Normalize homogeneous coordinates
+    for i = 1:size(transformed_corners, 2)
+        if abs(transformed_corners(3, i)) > 1e-10
+            transformed_corners(:, i) = transformed_corners(:, i) / transformed_corners(3, i);
+        end
+    end
+    
+    fprintf('Original image corners: [1,1], [1,%d], [%d,1], [%d,%d]\n', ...
+            size(img,1), size(img,2), size(img,2), size(img,1));
+    fprintf('Transformed corners:\n');
+    for i = 1:4
+        fprintf('  Corner %d: [%.1f, %.1f]\n', i, transformed_corners(1,i), transformed_corners(2,i));
+    end
+    
+    % Check if transformation will map image outside reasonable bounds
+    min_x = min(transformed_corners(1,:));
+    max_x = max(transformed_corners(1,:));
+    min_y = min(transformed_corners(2,:));
+    max_y = max(transformed_corners(2,:));
+    
+    fprintf('Transformed image bounds: X=[%.1f, %.1f], Y=[%.1f, %.1f]\n', min_x, max_x, min_y, max_y);
+    
+    % If the transformation maps the image to unreasonable locations, use alternative approach
+    if min_x < -10000 || max_x > 10000 || min_y < -10000 || max_y > 10000
+        warning('Transformation maps image to extreme coordinates. Using sequential approach instead.');
+        fprintf('Applying metric rectification to affine-corrected image...\n');
+        img_metric = applyHomography(img_affine, H_metric);
+    else
+        img_metric = applyHomography(img, H_complete);
+    end
 end
 
 fprintf('Final image size: %d x %d\n', size(img_metric, 1), size(img_metric, 2));
 fprintf('Final image range: [%d, %d]\n', min(img_metric(:)), max(img_metric(:)));
+
+% Check if the result is completely black (transformation failed)
+if max(img_metric(:)) == 0
+    warning('Metric rectification resulted in a black image!');
+    fprintf('This suggests the transformation mapped the image outside the output bounds.\n');
+    fprintf('Falling back to affine-corrected image for display.\n');
+    
+    img_metric = img_affine; % Use affine result instead
+    fprintf('Using affine-corrected image. Size: %d x %d, Range: [%d, %d]\n', ...
+            size(img_metric, 1), size(img_metric, 2), min(img_metric(:)), max(img_metric(:)));
+end
 
 % Check if image is too large and resize if necessary
 max_display_size = 1500; % Maximum dimension for display
@@ -405,16 +512,52 @@ if size(img_metric, 1) > max_display_size || size(img_metric, 2) > max_display_s
     
     % Calculate resize factor
     scale_factor = max_display_size / max(size(img_metric, 1), size(img_metric, 2));
-    img_metric_display = imresize(img_metric, scale_factor);
+    
+    % Manual resizing using interpolation (compatible with basic MATLAB)
+    [orig_height, orig_width, channels] = size(img_metric);
+    new_height = round(orig_height * scale_factor);
+    new_width = round(orig_width * scale_factor);
+    
+    % Create coordinate grids for interpolation
+    [X_new, Y_new] = meshgrid(1:new_width, 1:new_height);
+    [X_orig, Y_orig] = meshgrid(1:orig_width, 1:orig_height);
+    
+    % Scale coordinates back to original image space
+    X_scaled = X_new / scale_factor;
+    Y_scaled = Y_new / scale_factor;
+    
+    % Initialize resized image
+    img_metric_display = zeros(new_height, new_width, channels, class(img_metric));
+    
+    % Resize each channel separately using interpolation
+    for c = 1:channels
+        img_metric_display(:,:,c) = interp2(X_orig, Y_orig, double(img_metric(:,:,c)), ...
+                                           X_scaled, Y_scaled, 'linear', 0);
+    end
+    
+    % Convert back to original data type
+    img_metric_display = cast(img_metric_display, class(img_metric));
     
     fprintf('Resized to: %dx%d (scale factor: %.3f)\n', size(img_metric_display, 1), size(img_metric_display, 2), scale_factor);
     
     figure(3);
     imshow(img_metric_display);
-    title(sprintf('After Metric Rectification (Resized to %.1f%% for display)', scale_factor*100));
+    
+    % Determine what to show in the title based on what image we're actually displaying
+    if max(img_metric(:)) == 0 || isequal(img_metric, img_affine)
+        title(sprintf('Affine Rectification Only (Resized to %.1f%% for display)\nMetric rectification failed - showing affine result', scale_factor*100));
+    else
+        title(sprintf('After Metric Rectification (Resized to %.1f%% for display)', scale_factor*100));
+    end
 else
     figure(3);
     imshow(img_metric);
-    title('After Metric Rectification');
+    
+    % Determine what to show in the title
+    if max(img_metric(:)) == 0 || isequal(img_metric, img_affine)
+        title('Affine Rectification Only - Metric rectification failed');
+    else
+        title('After Metric Rectification');
+    end
 end
 

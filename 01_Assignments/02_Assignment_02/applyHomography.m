@@ -38,10 +38,40 @@ function img_out = applyHomography(img, H)
         minx = min(boxx); maxx = max(boxx);
         miny = min(boxy); maxy = max(boxy);
         
-        % Limit output size to prevent memory issues
-        max_size = 5000; % Maximum dimension
+        fprintf('DEBUG: Transformed bounds: X=[%.3f, %.3f], Y=[%.3f, %.3f]\n', minx, maxx, miny, maxy);
+        
+        % Check if the transformation creates very small bounds (image squeezed to tiny area)
         width = maxx - minx;
         height = maxy - miny;
+        
+        if width < 2 || height < 2
+            warning('Transformation maps image to very small area (%.3fx%.3f). Adjusting output size.', width, height);
+            
+            % Scale up the output to maintain reasonable resolution
+            min_output_size = 1000; % Minimum reasonable output dimension
+            scale_up = max(min_output_size / width, min_output_size / height);
+            
+            % Expand the output bounds
+            center_x = (minx + maxx) / 2;
+            center_y = (miny + maxy) / 2;
+            new_width = width * scale_up;
+            new_height = height * scale_up;
+            
+            minx = center_x - new_width / 2;
+            maxx = center_x + new_width / 2;
+            miny = center_y - new_height / 2;
+            maxy = center_y + new_height / 2;
+            
+            fprintf('DEBUG: Adjusted bounds: X=[%.3f, %.3f], Y=[%.3f, %.3f]\n', minx, maxx, miny, maxy);
+            fprintf('DEBUG: Scale-up factor: %.2f\n', scale_up);
+        end
+        
+        % Recalculate dimensions after potential adjustment
+        width = maxx - minx;
+        height = maxy - miny;
+        
+        % Limit output size to prevent memory issues
+        max_size = 5000; % Maximum dimension
         if width > max_size || height > max_size
             warning('Output image would be very large. Limiting size to %dx%d', max_size, max_size);
             if width > height
@@ -54,6 +84,8 @@ function img_out = applyHomography(img, H)
                 width = width * scale;
             end
         end
+        
+        fprintf('DEBUG: Final output size: %.0fx%.0f\n', width, height);
         
         img_out = imtransform(img, tform, 'XData', [minx maxx], 'YData', [miny maxy], ...
                              'Size', [round(height), round(width)]);
