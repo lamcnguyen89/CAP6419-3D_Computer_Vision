@@ -1,6 +1,39 @@
 % CAP6419: 3D Computer Vision
 % Assignment 02: Chapter 3 of Textbook: Multiple View Geometry in Computer Vision (2nd Edition)
 
+%% HOW TO USE THIS CODE:
+%
+% This script performs affine and metric rectification on an image.
+% 
+% BEFORE RUNNING:
+% 1. Make sure you are in the correct directory:
+%    d:\SoftwareDev\CAP6419-3D_Computer_Vision\01_Assignments\02_Assignment_02\
+% 2. Ensure you have the required functions in the same directory:
+%    - fitLine.m
+%    - applyHomography.m
+%    - computeAffineRectification.m
+%    - computeMetricRectification.m
+%    - fitConic.m
+%
+% WHEN RUNNING:
+% 1. The script will display an image and prompt you to select points
+% 2. DO NOT CLOSE THE FIGURE WINDOW during point selection
+% 3. Follow the on-screen instructions carefully
+% 4. Click points with your mouse, then press ENTER when done
+% 5. If you make a mistake, stop the script (Ctrl+C) and run it again
+%
+% POINT SELECTION GUIDE:
+% - Parallel Lines: Select points along lines that are parallel in real world
+%   but appear to converge in the image (e.g., building edges, table sides)
+% - Circular Object: Select 5+ points around the circumference of a circle
+%   that appears as an ellipse in the image (e.g., Pegasus logo, clock)
+%
+% TROUBLESHOOTING:
+% - If you get "Interrupted by figure deletion" error: Keep figure window open
+% - If you get "Index exceeds matrix dimensions": Select enough points
+% - If results look wrong: Try selecting different/better points
+%
+
 
 % In this assignment, you are expected to take your own test images and work with them. Write Matlab code to perform:
 
@@ -99,15 +132,69 @@ hold on;
 % You need to manually select or detect parallel lines that appear as 
 % intersecting lines in the image due to perspective distortion
 
+disp('=================================================================');
+disp('AFFINE RECTIFICATION - Step 1: Select Parallel Lines');
+disp('=================================================================');
+disp('You will now select points on two parallel lines in the image.');
+disp('These lines should appear to converge due to perspective distortion.');
+disp('For example, you can select points along:');
+disp('- Sides of a rectangular building');
+disp('- Edges of a table or desk');
+disp('- Parallel lines on the floor');
+disp(' ');
+disp('IMPORTANT: DO NOT close the figure window during point selection!');
+disp('Press any key to continue...');
+pause;
+
 % Step 1.2: Find vanishing point of parallel lines
 % Method 1: Manual point selection
+fprintf('\n=== SELECT FIRST PARALLEL LINE ===\n');
 fprintf('Select points on first parallel line (at least 2 points)\n');
+fprintf('1. Click on the image to select points along the first line\n');
+fprintf('2. Select at least 2 points (more points = better accuracy)\n');
+fprintf('3. Press ENTER when you are done selecting points\n');
+fprintf('4. DO NOT close the figure window!\n\n');
+
+% Ensure figure is active and visible
+figure(1);
 [x1, y1] = ginput(); % Let user select points
+
+% Validate first line points
+if length(x1) < 2
+    error('You must select at least 2 points for the first line');
+end
+
 line1 = [x1, y1, ones(length(x1), 1)]; % Convert to homogeneous coordinates
 
+% Plot selected points on first line
+hold on;
+plot(x1, y1, 'ro-', 'LineWidth', 2, 'MarkerSize', 8);
+text(x1(1), y1(1)-20, 'Line 1', 'Color', 'red', 'FontSize', 12, 'FontWeight', 'bold');
+
+fprintf('\n=== SELECT SECOND PARALLEL LINE ===\n');
 fprintf('Select points on second parallel line (at least 2 points)\n');
+fprintf('1. Click on the image to select points along the second line\n');
+fprintf('2. This line should be parallel to the first line in the real world\n');
+fprintf('3. Select at least 2 points (more points = better accuracy)\n');
+fprintf('4. Press ENTER when you are done selecting points\n');
+fprintf('5. DO NOT close the figure window!\n\n');
+
+% Ensure figure is still active
+figure(1);
 [x2, y2] = ginput();
+
+% Validate second line points
+if length(x2) < 2
+    error('You must select at least 2 points for the second line');
+end
+
 line2 = [x2, y2, ones(length(x2), 1)];
+
+% Plot selected points on second line
+plot(x2, y2, 'bo-', 'LineWidth', 2, 'MarkerSize', 8);
+text(x2(1), y2(1)-20, 'Line 2', 'Color', 'blue', 'FontSize', 12, 'FontWeight', 'bold');
+
+fprintf('Great! You selected %d points on line 1 and %d points on line 2.\n\n', length(x1), length(x2));
 
 % Fit lines using least squares
 L1 = fitLine(line1); % You'll need to implement this function
@@ -129,7 +216,11 @@ vanishing_point = vanishing_point / vanishing_point(3); % Normalize
 H_affine = computeAffineRectification(vanishing_point);
 
 % Step 1.5: Apply transformation
+% Option 1: Use the updated applyHomography function (works with older MATLAB)
 img_affine = applyHomography(img, H_affine);
+
+% Option 2: Use the provided TransformImage function directly
+% img_affine = TransformImage(img, H_affine);
 
 figure(2);
 imshow(img_affine);
@@ -138,16 +229,75 @@ title('After Affine Rectification');
 
 %% METRIC RECTIFICATION:
 
+disp('=================================================================');
+disp('METRIC RECTIFICATION - Step 2: Select Orthogonal Lines or Circles');
+disp('=================================================================');
+disp('Now you will perform metric rectification to remove similarity transformation.');
+disp('You have two options:');
+disp('1. Select points on two orthogonal (perpendicular) lines');
+disp('2. Select points on a circular object (recommended)');
+disp(' ');
+disp('For the circle method (recommended):');
+disp('- Look for circular objects in the image (like the Pegasus logo)');
+disp('- Select at least 5 points around the circumference');
+disp('- Try to distribute points evenly around the circle');
+disp(' ');
+disp('IMPORTANT: DO NOT close the figure window during point selection!');
+disp('Press any key to continue...');
+pause;
+
 % Step 2.1: Identify orthogonal line pairs or circular objects
 % Method 1: Using orthogonal lines
-fprintf('Select points on first orthogonal line\n');
+fprintf('\n=== METHOD 1: ORTHOGONAL LINES (Optional) ===\n');
+fprintf('Select points on first orthogonal line (or press ENTER to skip)\n');
+fprintf('These should be lines that are perpendicular in the real world\n');
+
+% Ensure figure 2 is active
+figure(2);
 [x_orth1, y_orth1] = ginput();
-fprintf('Select points on second orthogonal line\n');
-[x_orth2, y_orth2] = ginput();
+
+if ~isempty(x_orth1)
+    fprintf('Select points on second orthogonal line\n');
+    fprintf('This line should be perpendicular to the first line in the real world\n');
+    figure(2);
+    [x_orth2, y_orth2] = ginput();
+end
 
 % Method 2: Using circular objects (recommended for the Pegasus example)
+fprintf('\n=== METHOD 2: CIRCULAR OBJECT (Recommended) ===\n');
 fprintf('Select points on circular object (at least 5 points)\n');
-[x_circle, y_circle] = ginput();
+fprintf('1. Look for a circular object in the affine-rectified image\n');
+fprintf('2. Click points around the circumference of the circle\n');
+fprintf('3. Try to select at least 5 points distributed evenly\n');
+fprintf('4. Press ENTER when done\n');
+fprintf('5. DO NOT close the figure window!\n\n');
+
+% Ensure figure 2 is active
+figure(2);
+try
+    [x_circle, y_circle] = ginput();
+catch ME
+    if contains(ME.message, 'Interrupted by figure deletion')
+        error('Figure was closed during point selection. Please run the script again and keep the figure window open.');
+    else
+        rethrow(ME);
+    end
+end
+
+% Validate circle points
+if length(x_circle) < 5
+    warning('Fewer than 5 points selected for the circle. This may result in poor fitting.');
+    if length(x_circle) < 3
+        error('You must select at least 3 points to fit a conic (circle)');
+    end
+end
+
+% Plot selected circle points
+hold on;
+plot(x_circle, y_circle, 'go', 'MarkerSize', 8, 'LineWidth', 2);
+text(x_circle(1), y_circle(1)-20, 'Circle Points', 'Color', 'green', 'FontSize', 12, 'FontWeight', 'bold');
+
+fprintf('Great! You selected %d points on the circular object.\n\n', length(x_circle));
 
 % Step 2.2: Find the circular points (for Method 2)
 % Fit a conic to the circular object

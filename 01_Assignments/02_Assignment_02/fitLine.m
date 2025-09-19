@@ -3,6 +3,15 @@ function line_params = fitLine(points)
     % points: [x, y, 1] homogeneous coordinates
     % Returns: line parameters [a, b, c] where ax + by + c = 0
     
+    % Validate input
+    if size(points, 1) < 2
+        error('fitLine: Need at least 2 points to fit a line');
+    end
+    
+    if size(points, 2) < 2
+        error('fitLine: Points matrix must have at least 2 columns (x, y)');
+    end
+    
     A = points(:, 1:2);
     b = -ones(size(points, 1), 1);
     line_params = [A \ b; 1];
