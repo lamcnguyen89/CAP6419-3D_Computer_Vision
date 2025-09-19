@@ -87,6 +87,10 @@ clc, clearvars
 
 %% SETUP:
 
+%% IMAGE SELECTION - Change this variable to test different images
+% Available images: 'Building.jpg', 'Crop_Circle.jpg', 'desk.jpg', 'UCF SU.jpg'
+IMAGE_NAME = 'Lam_Image.jpg';  % Change this to use a different image
+
 %% REQUIRED PACKAGES AND SETUP
 % Add Computer Vision Toolbox functions
 if ~license('test', 'Video_and_Image_Blockset')
@@ -101,14 +105,14 @@ addpath(genpath('.')); % Add current directory and subdirectories
 % Try to get the directory where this script is located (works in newer MATLAB versions)
 try
     script_dir = fileparts(mfilename('fullpath'));
-    img_path = fullfile(script_dir, 'Homework 2_Materials', 'Crop_Circle.jpg');
+    img_path = fullfile(script_dir, 'Homework 2_Materials', IMAGE_NAME);
 catch
     % Fallback for older MATLAB versions - assume relative path
-    img_path = fullfile('Homework 2_Materials', 'Crop_Circle.jpg');
+    img_path = fullfile('Homework 2_Materials', IMAGE_NAME);
 end
 
 if ~exist(img_path, 'file')
-    error('Image file not found: %s\nAvailable images in Homework 2_Materials:\n- Building.jpg\n- Crop_Circle.jpg\n- desk.jpg\n- UCF SU.jpg\n\nMake sure you are running the script from: d:\\SoftwareDev\\CAP6419-3D_Computer_Vision\\01_Assignments\\02_Assignment_02\\', img_path);
+    error('Image file not found: %s\nAvailable images in Homework 2_Materials:\n- Building.jpg\n- Crop_Circle.jpg\n- desk.jpg\n- UCF SU.jpg\n\nMake sure you are running the script from: d:\\SoftwareDev\\CAP6419-3D_Computer_Vision\\01_Assignments\\02_Assignment_02\\\nAnd check that IMAGE_NAME variable is set to a valid filename.', img_path);
 end
 img = imread(img_path);
 
@@ -141,6 +145,12 @@ disp('For example, you can select points along:');
 disp('- Sides of a rectangular building');
 disp('- Edges of a table or desk');
 disp('- Parallel lines on the floor');
+disp(' ');
+disp('Tips for selecting good parallel lines:');
+disp('- Choose lines that clearly converge in the image (due to perspective)');
+disp('- Avoid lines that are nearly parallel in the image (they should meet somewhere)');
+disp('- Good examples: building edges, table sides, road edges, fence lines');
+disp('- Make sure lines are actually parallel in the real world');
 disp(' ');
 disp('IMPORTANT: DO NOT close the figure window during point selection!');
 disp('Press any key to continue...');
@@ -200,9 +210,26 @@ fprintf('Great! You selected %d points on line 1 and %d points on line 2.\n\n', 
 L1 = fitLine(line1); % You'll need to implement this function
 L2 = fitLine(line2);
 
+fprintf('Line 1 parameters: [%.4f, %.4f, %.4f]\n', L1(1), L1(2), L1(3));
+fprintf('Line 2 parameters: [%.4f, %.4f, %.4f]\n', L2(1), L2(2), L2(3));
+
 % Find vanishing point (intersection of the two lines)
 vanishing_point = cross(L1, L2);
 vanishing_point = vanishing_point / vanishing_point(3); % Normalize
+
+fprintf('Raw vanishing point: [%.2f, %.2f, %.2f]\n', vanishing_point(1), vanishing_point(2), vanishing_point(3));
+
+% Check if lines are nearly parallel (which would give a vanishing point at infinity)
+line_angle = abs(atan2(L1(2), L1(1)) - atan2(L2(2), L2(1))) * 180/pi;
+if line_angle > 90
+    line_angle = 180 - line_angle; % Take acute angle
+end
+fprintf('Angle between lines: %.2f degrees\n', line_angle);
+
+if line_angle < 5
+    warning('Lines are nearly parallel (angle < 5 degrees). This may cause numerical instability.');
+    fprintf('Consider selecting points on lines that converge more clearly in the image.\n');
+end
 
 % Step 1.3: Find the line at infinity
 % The line at infinity passes through all vanishing points of parallel lines
@@ -215,9 +242,43 @@ vanishing_point = vanishing_point / vanishing_point(3); % Normalize
 % Homography for affine rectification
 H_affine = computeAffineRectification(vanishing_point);
 
+fprintf('\nDEBUG: Affine rectification homography H_affine:\n');
+disp(H_affine);
+
+% Check the condition number of the homography
+cond_num = cond(H_affine);
+fprintf('Condition number of H_affine: %.2e\n', cond_num);
+if cond_num > 1e12
+    warning('Homography is poorly conditioned. Results may be unreliable.');
+end
+
 % Step 1.5: Apply transformation
+fprintf('\nApplying affine transformation...\n');
 % Option 1: Use the updated applyHomography function (works with older MATLAB)
 img_affine = applyHomography(img, H_affine);
+
+fprintf('Original image size: %d x %d\n', size(img, 1), size(img, 2));
+fprintf('Transformed image size: %d x %d\n', size(img_affine, 1), size(img_affine, 2));
+fprintf('Transformed image data type: %s\n', class(img_affine));
+fprintf('Transformed image range: [%d, %d]\n', min(img_affine(:)), max(img_affine(:)));
+
+% Check if we got a black image
+if max(img_affine(:)) == 0
+    warning('Transformed image is completely black! Trying alternative approach...');
+    
+    % Try using the provided TransformImage function instead
+    fprintf('Trying TransformImage function...\n');
+    try
+        img_affine = TransformImage(img, H_affine);
+        fprintf('TransformImage succeeded. New image range: [%d, %d]\n', min(img_affine(:)), max(img_affine(:)));
+    catch ME
+        fprintf('TransformImage also failed: %s\n', ME.message);
+        
+        % Last resort: try with identity matrix (no transformation)
+        fprintf('Using identity transformation as fallback...\n');
+        img_affine = img;
+    end
+end
 
 % Option 2: Use the provided TransformImage function directly
 % img_affine = TransformImage(img, H_affine);
@@ -310,11 +371,50 @@ conic_matrix = fitConic([x_circle, y_circle]);
 % This removes the remaining similarity transformation after affine rectification
 H_metric = computeMetricRectification(conic_matrix, H_affine);
 
+fprintf('\nDEBUG: Metric rectification homography H_metric:\n');
+disp(H_metric);
+
 % Step 2.4: Apply complete transformation
 H_complete = H_metric * H_affine;
-img_metric = applyHomography(img, H_complete);
 
-figure(3);
-imshow(img_metric);
-title('After Metric Rectification');
+fprintf('DEBUG: Complete transformation homography H_complete:\n');
+disp(H_complete);
+
+% Check condition number of complete transformation
+cond_complete = cond(H_complete);
+fprintf('Condition number of H_complete: %.2e\n', cond_complete);
+
+if cond_complete > 1e12
+    warning('Complete transformation is poorly conditioned. Results may be unreliable.');
+    fprintf('Trying metric rectification on the affine-corrected image instead...\n');
+    
+    % Alternative approach: apply metric rectification to the already affine-corrected image
+    img_metric = applyHomography(img_affine, H_metric);
+else
+    fprintf('Applying complete transformation to original image...\n');
+    img_metric = applyHomography(img, H_complete);
+end
+
+fprintf('Final image size: %d x %d\n', size(img_metric, 1), size(img_metric, 2));
+fprintf('Final image range: [%d, %d]\n', min(img_metric(:)), max(img_metric(:)));
+
+% Check if image is too large and resize if necessary
+max_display_size = 1500; % Maximum dimension for display
+if size(img_metric, 1) > max_display_size || size(img_metric, 2) > max_display_size
+    fprintf('Image is very large (%dx%d). Resizing for display...\n', size(img_metric, 1), size(img_metric, 2));
+    
+    % Calculate resize factor
+    scale_factor = max_display_size / max(size(img_metric, 1), size(img_metric, 2));
+    img_metric_display = imresize(img_metric, scale_factor);
+    
+    fprintf('Resized to: %dx%d (scale factor: %.3f)\n', size(img_metric_display, 1), size(img_metric_display, 2), scale_factor);
+    
+    figure(3);
+    imshow(img_metric_display);
+    title(sprintf('After Metric Rectification (Resized to %.1f%% for display)', scale_factor*100));
+else
+    figure(3);
+    imshow(img_metric);
+    title('After Metric Rectification');
+end
 
