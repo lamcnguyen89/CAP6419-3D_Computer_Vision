@@ -1,6 +1,6 @@
 % =========================================================================
 % CAP6419: 3D Computer Vision
-% Assignment 03: Chapter 2 of Textbook: Multiple View Geometry in Computer Vision (2nd Edition)
+% Assignment 03: Multiple View Geometry in Computer Vision (2nd Edition): Part 1: Camera Geometry and Single View Geometry
 % =========================================================================
 
 clc, clearvars
@@ -16,7 +16,7 @@ clc, clearvars
 %               ─────────────────────
 %               (l1^T * m2)(l2^T * m1)
 
-% Solution for Q1:
+% SOLUTION FOR Q1:
 % 
 % In projective geometry, a transformation (homography) is represented by a 
 % non-singular 3×3 matrix H. The transformation rules are:
@@ -62,7 +62,7 @@ clc, clearvars
 %               ─────────────────────────
 %               (m1^T * C * m1)(m2^T * C * m2)
 
-% Solution for Q2:
+% SOLUTION FOR Q2:
 % 
 % The transformation rules for points and conics are:
 %   - For a point m:  m' = H*m
@@ -106,7 +106,7 @@ clc, clearvars
 % parallel lines in the image. Show that this is not necessarily the case
 % if the camera is not affine.
 
-% Solution for Q3:
+% SOLUTION FOR Q3:
 
 % An affine camera has a projection matrix P_A with the form:
 %
@@ -197,7 +197,9 @@ clc, clearvars
 % The general projective camera matrix is P = [p1 p2 p3 p4], where p_i are 
 % 3×1 column vectors. The projection equation is m ~ P*M.
 
-% Solution for Q4a:
+
+
+% SOLUTION FOR Q4a:
 % 
 % The general projective camera matrix is P = [p1 p2 p3 p4], where p_i are 
 % 3×1 column vectors. The projection equation is m ~ P*M.
@@ -229,7 +231,7 @@ clc, clearvars
 % along the three world coordinate axes up to unknown scales.
 
 
-% Solution for Q4b:
+% SOLUTION FOR Q4b:
 %
 % The origin of the world coordinate system is the 3D point M_O = [0 0 0]^T, 
 % which in homogeneous coordinates is M_O^h = [0 0 0 1]^T.
@@ -250,7 +252,7 @@ clc, clearvars
 % where ω = K^(-T) * K^(-1).
 
 
-% Solution for Q5:
+% SOLUTION FOR Q5:
 %
 % The vanishing point v_d for a world line with direction d is the image of 
 % the point at infinity:
