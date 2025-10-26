@@ -1,6 +1,6 @@
 % CAP6419: 3D Computer Vision
 % Assignment 01: Chapter 2 of Textbook: Multiple View Geometry in Computer Vision (2nd Edition)
-
+% Author: Lam Nguyen
 clc, clearvars
 
 a=1
