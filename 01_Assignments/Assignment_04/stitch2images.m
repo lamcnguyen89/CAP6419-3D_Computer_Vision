@@ -5,18 +5,23 @@ function outim = stitch2images(im1, im2, H)
 %
 %
 
-T = projective2d(double(H));
-[xlim, ylim] = outputLimits(T, [1 size(im1,2)], [1 size(im1,1)]);
-xdata = [xlim(1) xlim(2)];
-ydata = [ylim(1) ylim(2)];
+% Create projective2d transformation object
+tform = projective2d(double(H'));
 
-Outxdata=[min(1,xdata(1)) max(size(im2,2), xdata(2))];
-outydata=[min(1,ydata(1)) max(size(im2,1), ydata(2))];
+% Get output bounds for the transformed image
+[~, xdata, ydata] = outputLimits(tform, [1 size(im1,2)], [1 size(im1,1)]);
 
-Rout = imref2d([diff(outydata) diff(Outxdata)], Outxdata, outydata);
-warpedim1 = imwarp(im1, T, 'OutputView', Rout);
-T2 = affine2d(eye(3));
-warpedim2 = imwarp(im2, T2, 'OutputView', Rout);
+% Calculate output coordinate limits
+Outxdata = [min(1, xdata(1)) max(size(im2,2), xdata(2))];
+outydata = [min(1, ydata(1)) max(size(im2,1), ydata(2))];
+
+% Create output view
+outputView = imref2d([ceil(outydata(2)-outydata(1)), ceil(Outxdata(2)-Outxdata(1))], ...
+                     Outxdata, outydata);
+
+% Warp images using imwarp with the output view
+warpedim1 = imwarp(im1, tform, 'OutputView', outputView);
+warpedim2 = imwarp(im2, affine2d(eye(3)), 'OutputView', outputView);
 outim = warpedim1 + warpedim2;
 overlap = (warpedim1 > 0.0) & (warpedim2 > 0.0);
 
