@@ -50,7 +50,7 @@
 %    - Feathering reduces noticeable seams in the result image
 
 %% Clear workspace and close figures
-clear all;
+clear;
 close all;
 clc;
 
@@ -140,7 +140,7 @@ for i = 1:numImages-1
     [H, inlierIdx] = estimateGeometricTransform(matchedPoints1, matchedPoints2, ...
         'projective', 'Confidence', confidence, 'MaxDistance', maxDistance);
     
-    homographies{i} = H.T';  % Store transposed homography matrix
+    homographies{i} = H.T;  % Store homography matrix (no transpose needed)
     
     fprintf('  RANSAC found %d inliers out of %d matches\n', ...
         sum(inlierIdx), length(inlierIdx));
@@ -172,31 +172,89 @@ end
 for i = referenceIdx-1:-1:1
     % Use inverse of homography from i to i+1
     H_inv = inv(homographies{i});
-    cumulativeH{i} = cumulativeH{i+1} * H_inv;
+    cumulativeH{i} = H_inv * cumulativeH{i+1};
     fprintf('Homography for image %d relative to reference:\n', i);
     disp(cumulativeH{i});
 end
 
-%% Step 4: Stitch Images Together
-fprintf('\n=== Stitching Images ===\n');
+%% Step 4: Warp All Images to Reference Frame and Composite
+fprintf('\n=== Warping All Images to Reference Frame ===\n');
 
-% Start with the reference image
-panorama = images{referenceIdx};
-fprintf('Starting with reference image %d\n', referenceIdx);
+% First, determine the size of the output panorama by finding bounds
+% of all transformed images
+minX = inf; maxX = -inf;
+minY = inf; maxY = -inf;
 
-% Stitch images to the right of reference
-for i = referenceIdx+1:numImages
-    fprintf('Stitching image %d...\n', i);
-    H_relative = cumulativeH{i} * inv(cumulativeH{referenceIdx});
-    panorama = stitch2images(images{i}, panorama, H_relative);
+for i = 1:numImages
+    if i == referenceIdx
+        % Reference image bounds
+        minX = min(minX, 1);
+        maxX = max(maxX, size(images{i}, 2));
+        minY = min(minY, 1);
+        maxY = max(maxY, size(images{i}, 1));
+    else
+        % Get bounds for transformed image
+        tform = projective2d(cumulativeH{i});
+        [~, xdata, ydata] = outputLimits(tform, [1 size(images{i},2)], [1 size(images{i},1)]);
+        minX = min(minX, xdata(1));
+        maxX = max(maxX, xdata(2));
+        minY = min(minY, ydata(1));
+        maxY = max(maxY, ydata(2));
+    end
 end
 
-% Stitch images to the left of reference
-for i = referenceIdx-1:-1:1
-    fprintf('Stitching image %d...\n', i);
-    H_relative = cumulativeH{i} * inv(cumulativeH{referenceIdx});
-    panorama = stitch2images(images{i}, panorama, H_relative);
+fprintf('Panorama bounds: X[%.2f, %.2f], Y[%.2f, %.2f]\n', minX, maxX, minY, maxY);
+
+% Create output view for the entire panorama
+width = round(maxX - minX);
+height = round(maxY - minY);
+xLimits = [minX, maxX];
+yLimits = [minY, maxY];
+panoramaView = imref2d([height, width], xLimits, yLimits);
+
+fprintf('Panorama size: %dx%d pixels\n', height, width);
+
+%% Warp all images and composite
+fprintf('\n=== Compositing Panorama ===\n');
+
+% Initialize panorama as double for blending
+panorama = zeros(height, width, size(images{1}, 3), 'double');
+weightMap = zeros(height, width, 'double');
+
+for i = 1:numImages
+    fprintf('Processing image %d...\n', i);
+    
+    img_double = im2double(images{i});
+    
+    if i == referenceIdx
+        % Reference image: apply translation to account for panorama offset
+        xOffset = 1 - minX;
+        yOffset = 1 - minY;
+        tform = affine2d([1 0 0; 0 1 0; xOffset yOffset 1]);
+        warpedImg = imwarp(img_double, tform, 'OutputView', panoramaView);
+    else
+        % Other images: apply cumulative homography
+        tform = projective2d(cumulativeH{i});
+        warpedImg = imwarp(img_double, tform, 'OutputView', panoramaView);
+    end
+    
+    % Create mask for this image
+    mask = any(warpedImg > 1e-6, 3);
+    
+    % Accumulate using simple averaging (can be improved with feathering)
+    for c = 1:size(panorama, 3)
+        panorama(:,:,c) = panorama(:,:,c) + warpedImg(:,:,c) .* double(mask);
+    end
+    weightMap = weightMap + double(mask);
 end
+
+% Normalize by weight map to get average
+for c = 1:size(panorama, 3)
+    panorama(:,:,c) = panorama(:,:,c) ./ max(weightMap, 1);
+end
+
+% Convert back to uint8 for display/saving
+panorama = im2uint8(panorama);
 
 %% Step 5: Display and Save Result
 fprintf('\n=== Displaying Result ===\n');
