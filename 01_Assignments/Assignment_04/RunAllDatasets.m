@@ -1,64 +1,43 @@
-%% Code to Generate a Panorama from Multiple Images
-% This script implements a panoramic image stitching pipeline that:
-% - Reads multiple images from a sequence
-% - Detects and matches feature points between adjacent images
-% - Estimates homographies using RANSAC
-% - Warps images to a common reference frame
-% - Composites them into a single panoramic image
+%% RunAllDatasets - Batch process all image folders to create panoramas
 %
-% ASSIGNMENT REQUIREMENTS:
+% DESCRIPTION:
+%   Convenience script that automatically discovers all image dataset folders
+%   in the imagesets/ directory and processes each one to create panoramas.
+%   This is useful for testing the algorithm on multiple datasets at once.
 %
-% 1. IMAGE SEQUENCE ACQUISITION
-%    - Obtain an image sequence where the camera projection center does not
-%      change (or changes minimally) during the entire sequence
-%    - Adjacent pairs of images must significantly overlap each other
-%    - You may use provided sequences or capture your own images
-%    - Required: Test on at least one self-captured image set
-%    - Minimum: Mosaic at least 4 images together per data set
-%    - Apply method to at least 3 different sequences
-%    - All results must be reproducible
+% FEATURES:
+%   - Automatic folder discovery (no hardcoding needed)
+%   - Progress reporting for each dataset
+%   - Error handling (continues if one dataset fails)
+%   - Visual display of results in separate figure windows
+%   - Saves all results to results/ folder
 %
-% 2. FEATURE POINT CORRESPONDENCE
-%    - Use a feature point correspondence algorithm (e.g., SIFT with RANSAC)
-%      to automatically track point correspondences
-%    - Set number of features to track as appropriate (e.g., 100 features)
-%    - Document and justify any parameter changes from default settings
-%    - Run the algorithm on your image sequence to create point correspondences
-%    - Note: Manual point correspondence is also allowed but tedious
+% USAGE:
+%   Simply run this script:
+%   >> RunAllDatasets
 %
-% 3. HOMOGRAPHY COMPUTATION
-%    - Compute the infinite homography between each pair of adjacent frames
-%    - Implement forward or backward homography mapping for each candidate
-%      set of point correspondences
-%    - Use RANSAC to ensure best fit in the presence of outliers (when using SIFT)
-%    - Reference: Normalized GOLD standard algorithm and robust version
-%      using RANSAC (see textbook)
+% OUTPUT:
+%   - One figure window per dataset showing the panorama
+%   - JPEG files saved in results/ folder
+%   - Console output showing progress and timing
 %
-% 4. IMAGE WARPING
-%    - Warp each image via the infinite homography associated with one reference
-%      frame (ideally one in the middle of the sequence)
-%    - Use backward mapping method with bilinear interpolation for pixel resampling
-%    - Note: MATLAB image transformation functions are allowed, or use functions
-%      from Assignment 2
+% NOTES:
+%   - Processing time depends on number of images and their sizes
+%   - Each dataset uses parameters defined in main.m
+%   - Results are automatically saved even if display fails
 %
-% 5. IMAGE COMPOSITING
-%    - Composite all images into a single panoramic image
-%    - Optional: Implement feathering algorithm using bilinear weighting function
-%      for all pixels contributing at a given point
-%    - Reference: Equation (9) in Szeliski, R. "Video mosaics for virtual 
-%      environments," IEEE Computer Graphics and Applications 16(2), 22-30, 1996
-%    - Feathering reduces noticeable seams in the result image
 
 clear; clc; close all;
 
-%% Automatically find and process all image folders
+%% Discover all image folders in imagesets directory
 imgs_path = 'imagesets';
 
-% Get all subdirectories in the imagesets folder
+% Scan directory for subdirectories (each is a dataset)
 imgsFolderContents = dir(imgs_path);
 imgsFolderContents = imgsFolderContents([imgsFolderContents.isdir]); % Keep only directories
 imgsFolderContents = imgsFolderContents(~ismember({imgsFolderContents.name},{'.','..'})); % Remove . and ..
 
+% Display discovered datasets
 numDatasets = length(imgsFolderContents);
 fprintf('Found %d image folders in "%s" directory:\n', numDatasets, imgs_path);
 for i = 1:numDatasets
@@ -66,21 +45,25 @@ for i = 1:numDatasets
 end
 fprintf('\n');
 
-% Process each dataset
+%% Process each dataset sequentially
 for i = 1:numDatasets
     try
+        % Progress header
         fprintf('========================================\n');
         fprintf('Processing dataset %d of %d: %s\n', i, numDatasets, imgsFolderContents(i).name);
         fprintf('========================================\n');
         
+        % Call main() with dataset index
         panorama = main(i);
         
+        % Display result in new figure window
         figure('Name', sprintf('Panorama %d: %s', i, imgsFolderContents(i).name));
         imshow(panorama);
         title(sprintf('%s', imgsFolderContents(i).name), 'Interpreter', 'none');
         
         fprintf('Successfully created panorama for %s\n\n', imgsFolderContents(i).name);
     catch ME
+        % Error handling: report error but continue with next dataset
         fprintf('ERROR processing %s:\n', imgsFolderContents(i).name);
         fprintf('  %s\n\n', ME.message);
         % Continue to next dataset instead of stopping
@@ -88,6 +71,7 @@ for i = 1:numDatasets
     end
 end
 
+%% Summary
 fprintf('========================================\n');
 fprintf('Completed processing all datasets\n');
 fprintf('========================================\n');
