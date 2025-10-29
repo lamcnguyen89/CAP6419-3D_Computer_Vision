@@ -51,39 +51,72 @@
 
 function [panorama]=main(filename)
     %% parse path
-    %             1       2unorder          3           4             5
-    datasets={'ucsb4','family_house','glacier4','yellowstone2','GrandCanyon1',...
-        'yellowstone5','yellowstone4','west_campus1','redrock','intersection',...
-    ...%     6              7               8unorder            9      10
-    'GrandCanyon2','ImageSet01','ImageSet02','ImageSet03','ImageSet04',...
-    ...%  11          12          13          14          15
-    'ImageSet05','ImageSet06'};
-    % 16          17
+    path='imagesets';
+    
+    % If numeric index provided, get dataset name from folder list
     if isnumeric(filename)
         dataset_idx=filename;
-        path='imgs';
+        % Get all folders in imagesets directory
+        imgsFolderContents = dir(path);
+        imgsFolderContents = imgsFolderContents([imgsFolderContents.isdir]); % Keep only directories
+        imgsFolderContents = imgsFolderContents(~ismember({imgsFolderContents.name},{'.','..'})); % Remove . and ..
+        
+        if dataset_idx < 1 || dataset_idx > length(imgsFolderContents)
+            error('Dataset index %d is out of range. Valid range: 1-%d', dataset_idx, length(imgsFolderContents));
+        end
+        
+        dataset_name = imgsFolderContents(dataset_idx).name;
     else
+        % String path provided
         if strcmp(filename(end),'/')
             filename=filename(1:end-1);
         end
         [path,dataset_name,~]=fileparts(filename);
         disp(['path ',path,' dataset ',dataset_name])
-        
-        dataset_idx=find(strcmp(datasets,dataset_name));
+        dataset_idx = -1; % Not used when string path provided
     end
-    %% params
-    %dataset_idx=8;
-    %       1   2  3    4     5   6    7    8    9    10   11   12  13  14  15  16  17
-    focus=[595,400,2000,1000,1000,1000,1000,1000,2000,2000,2000,800,800,800,800,800,800];
-    Full360=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-    unordered=[0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0];
+    
+    %% params - default values for unknown datasets
+    % Known datasets with specific parameters
+    known_datasets = struct(...
+        'ucsb4', struct('focus', 595, 'full360', 0, 'unordered', 0), ...
+        'family_house', struct('focus', 400, 'full360', 0, 'unordered', 1), ...
+        'glacier4', struct('focus', 2000, 'full360', 0, 'unordered', 0), ...
+        'yellowstone2', struct('focus', 1000, 'full360', 0, 'unordered', 0), ...
+        'GrandCanyon1', struct('focus', 1000, 'full360', 0, 'unordered', 0), ...
+        'yellowstone5', struct('focus', 1000, 'full360', 0, 'unordered', 0), ...
+        'yellowstone4', struct('focus', 1000, 'full360', 0, 'unordered', 0), ...
+        'west_campus1', struct('focus', 1000, 'full360', 0, 'unordered', 1), ...
+        'redrock', struct('focus', 2000, 'full360', 0, 'unordered', 0), ...
+        'intersection', struct('focus', 2000, 'full360', 0, 'unordered', 0), ...
+        'GrandCanyon2', struct('focus', 2000, 'full360', 0, 'unordered', 0) ...
+    );
+    
+    % Default parameters for new/unknown datasets
+    default_focus = 800;
+    default_full360 = 0;
+    default_unordered = 0;
+    
+    % Get parameters for this dataset
+    if isfield(known_datasets, dataset_name)
+        params = known_datasets.(dataset_name);
+        f = params.focus;
+        full = params.full360;
+        is_unordered = params.unordered;
+    else
+        % Use defaults for unknown datasets
+        f = default_focus;
+        full = default_full360;
+        is_unordered = default_unordered;
+        disp(['Using default parameters for unknown dataset: ', dataset_name]);
+    end
+    
     size_bound=400.0;
     %%
-    full=Full360(dataset_idx);
-    f=focus(dataset_idx);
     run('lib/vlfeat-0.9.20/toolbox/vl_setup');
-    disp(['creating panorama for ',datasets{dataset_idx}]);
-    s=imageSet(fullfile(path,datasets{dataset_idx}));
+    disp(['creating panorama for ',dataset_name]);
+    disp(['  focal length: ', num2str(f), ', 360: ', num2str(full), ', unordered: ', num2str(is_unordered)]);
+    s=imageSet(fullfile(path,dataset_name));
     img=read(s,1);
     size_1=size(img,1);
     if size_1>size_bound
@@ -100,9 +133,9 @@ function [panorama]=main(filename)
         end
         
     end
-    disp(['resizing',int2str(cputime-t),' sec']);
+    disp(['resizing ',int2str(cputime-t),' sec']);
 
-    if unordered(dataset_idx)
+    if is_unordered
         t=cputime;
         disp('ordering unordered images');
         imgs=imorder(imgs);
@@ -110,7 +143,7 @@ function [panorama]=main(filename)
     end
 
     panorama=create( imgs, f, full);
-    imwrite(panorama,['./results/',datasets{dataset_idx},'.jpg']);
-    if unordered(dataset_idx)
-        imwrite(panorama,['./results/',datasets{dataset_idx},'from unordered.jpg']);
+    imwrite(panorama,['./results/',dataset_name,'.jpg']);
+    if is_unordered
+        imwrite(panorama,['./results/',dataset_name,'_from_unordered.jpg']);
     end

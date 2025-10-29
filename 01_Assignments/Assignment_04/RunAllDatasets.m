@@ -50,8 +50,44 @@
 %    - Feathering reduces noticeable seams in the result image
 
 clear; clc; close all;
-for i=1:17
-    panorama=main(i);
-    figure
-    imshow(panorama);
+
+%% Automatically find and process all image folders
+imgs_path = 'imagesets';
+
+% Get all subdirectories in the imagesets folder
+imgsFolderContents = dir(imgs_path);
+imgsFolderContents = imgsFolderContents([imgsFolderContents.isdir]); % Keep only directories
+imgsFolderContents = imgsFolderContents(~ismember({imgsFolderContents.name},{'.','..'})); % Remove . and ..
+
+numDatasets = length(imgsFolderContents);
+fprintf('Found %d image folders in "%s" directory:\n', numDatasets, imgs_path);
+for i = 1:numDatasets
+    fprintf('  %d. %s\n', i, imgsFolderContents(i).name);
 end
+fprintf('\n');
+
+% Process each dataset
+for i = 1:numDatasets
+    try
+        fprintf('========================================\n');
+        fprintf('Processing dataset %d of %d: %s\n', i, numDatasets, imgsFolderContents(i).name);
+        fprintf('========================================\n');
+        
+        panorama = main(i);
+        
+        figure('Name', sprintf('Panorama %d: %s', i, imgsFolderContents(i).name));
+        imshow(panorama);
+        title(sprintf('%s', imgsFolderContents(i).name), 'Interpreter', 'none');
+        
+        fprintf('Successfully created panorama for %s\n\n', imgsFolderContents(i).name);
+    catch ME
+        fprintf('ERROR processing %s:\n', imgsFolderContents(i).name);
+        fprintf('  %s\n\n', ME.message);
+        % Continue to next dataset instead of stopping
+        continue;
+    end
+end
+
+fprintf('========================================\n');
+fprintf('Completed processing all datasets\n');
+fprintf('========================================\n');
