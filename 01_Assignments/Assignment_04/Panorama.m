@@ -56,20 +56,22 @@ clc;
 
 %% Configuration Parameters
 % Adjust these parameters based on your image sequence
-imageFolder = 'images/';  % Folder containing your image sequence
+% Get the directory where this script is located
+scriptDir = fileparts(mfilename('fullpath'));
+imageFolder = fullfile(scriptDir, 'images/');  % Folder containing your image sequence
 imagePrefix = 'img';       % Prefix for image filenames
 imageExt = '.jpg';         % Image file extension
 numImages = 4;             % Number of images to stitch (minimum 4)
 referenceIdx = 2;          % Index of reference image (ideally in the middle)
 
 % Feature detection and matching parameters
-numFeatures = 500;         % Number of SURF/SIFT features to detect
-matchThreshold = 10.0;     % Matching threshold (lower = more strict)
-maxRatio = 0.7;            % Lowe's ratio test threshold
+numFeatures = 1000;        % Number of SURF/SIFT features to detect (increased)
+matchThreshold = 20.0;     % Matching threshold (higher = more matches, less strict)
+maxRatio = 0.8;            % Lowe's ratio test threshold (higher = more permissive)
 
 % RANSAC parameters
-confidence = 99.9;         % RANSAC confidence level (%)
-maxDistance = 1.5;         % Maximum distance for inliers (pixels)
+confidence = 90.0;         % RANSAC confidence level (%) - reduced for more flexibility
+maxDistance = 5.0;         % Maximum distance for inliers (pixels) - increased tolerance
 
 %% Step 1: Load Images
 fprintf('=== Loading Images ===\n');
@@ -136,21 +138,68 @@ for i = 1:numImages-1
     matchedPoints1 = valid_points1(indexPairs(:, 1), :);
     matchedPoints2 = valid_points2(indexPairs(:, 2), :);
     
+    % Check if we have enough matches
+    if size(indexPairs, 1) < 4
+        fprintf('  ERROR: Not enough matches (%d found, need at least 4)\n', size(indexPairs, 1));
+        fprintf('  Try: 1) Ensure images overlap significantly (30-50%%)\n');
+        fprintf('       2) Increase matchThreshold (currently %.2f)\n', matchThreshold);
+        fprintf('       3) Increase maxRatio (currently %.2f)\n', maxRatio);
+        error('Cannot compute homography with fewer than 4 matches.');
+    end
+    
     % Estimate homography using RANSAC
-    [H, inlierIdx] = estimateGeometricTransform(matchedPoints1, matchedPoints2, ...
-        'projective', 'Confidence', confidence, 'MaxDistance', maxDistance);
+    try
+        [tform, inlierIdx] = estimateGeometricTransform(matchedPoints1, matchedPoints2, ...
+            'projective', 'Confidence', confidence, 'MaxDistance', maxDistance, ...
+            'MaxNumTrials', 5000);
+        
+        % Check if RANSAC succeeded
+        if isempty(tform)
+            error('RANSAC failed to find a valid homography');
+        end
+        
+        % Handle different return types for inlierIdx
+        if islogical(inlierIdx)
+            numInliers = sum(inlierIdx);
+        elseif isnumeric(inlierIdx)
+            numInliers = length(inlierIdx);
+            % Convert indices to logical array
+            temp = false(size(matchedPoints1, 1), 1);
+            temp(inlierIdx) = true;
+            inlierIdx = temp;
+        else
+            error('Unexpected inlierIdx type: %s', class(inlierIdx));
+        end
+        
+        if numInliers < 4
+            error('Too few inliers (%d found, need at least 4)', numInliers);
+        end
+        
+        % Extract homography matrix from transform object
+        homographies{i} = tform.T';  % Transpose for correct format
+        
+        fprintf('  RANSAC found %d inliers out of %d matches (%.1f%%)\n', ...
+            numInliers, length(inlierIdx), 100*numInliers/length(inlierIdx));
+    catch ME
+        fprintf('  ERROR: Failed to estimate homography between images %d and %d\n', i, i+1);
+        fprintf('  Reason: %s\n', ME.message);
+        fprintf('\n  TROUBLESHOOTING:\n');
+        fprintf('  1) Ensure images overlap significantly (30-50%%)\n');
+        fprintf('  2) Camera should only ROTATE, not move sideways\n');
+        fprintf('  3) Try increasing maxDistance to 5.0 or higher\n');
+        fprintf('  4) Try decreasing confidence to 90.0 or lower\n');
+        fprintf('  5) Check that images are in correct order (left to right)\n');
+        fprintf('  6) Verify images are not too blurry or low quality\n');
+        error('Cannot proceed without valid homography. Please check your images.');
+    end
     
-    homographies{i} = H.T;  % Store homography matrix (no transpose needed)
-    
-    fprintf('  RANSAC found %d inliers out of %d matches\n', ...
-        sum(inlierIdx), length(inlierIdx));
-    
-    % Visualize matches (optional)
-    if false  % Set to true to visualize matches
-        figure;
+    % Visualize matches (optional - set to true to debug matching issues)
+    if true  % Enable to see feature matches
+        figure('Name', sprintf('Matches: Image %d to %d', i, i+1));
         showMatchedFeatures(images{i}, images{i+1}, ...
             matchedPoints1(inlierIdx), matchedPoints2(inlierIdx), 'montage');
-        title(sprintf('Matched Features: Image %d to Image %d', i, i+1));
+        title(sprintf('Matched Features: Image %d to Image %d (%d inliers)', i, i+1, numInliers));
+        drawnow;
     end
 end
 
@@ -171,8 +220,8 @@ end
 % Compute homographies for images to the left of reference
 for i = referenceIdx-1:-1:1
     % Use inverse of homography from i to i+1
-    H_inv = inv(homographies{i});
-    cumulativeH{i} = H_inv * cumulativeH{i+1};
+    % Solve: homographies{i} * cumulativeH{i} = cumulativeH{i+1}
+    cumulativeH{i} = homographies{i} \ cumulativeH{i+1};
     fprintf('Homography for image %d relative to reference:\n', i);
     disp(cumulativeH{i});
 end
