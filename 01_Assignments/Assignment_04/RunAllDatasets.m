@@ -50,7 +50,7 @@
 %    - Feathering reduces noticeable seams in the result image
 
 clear; clc; close all;
-for i=1:11
+for i=1:17
     panorama=main(i);
     figure
     imshow(panorama);
