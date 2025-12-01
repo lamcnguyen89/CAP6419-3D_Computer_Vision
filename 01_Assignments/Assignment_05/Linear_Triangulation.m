@@ -1,40 +1,60 @@
 % Source - https://stackoverflow.com/questions/5059568/triangulation-using-the-direct-linear-transform-taken-directly-from-hartley-zi
 % Posted by Jeroen Vlek
 % Retrieved 2025-12-01, License - CC BY-SA 2.5
+% Modified to work with actual images and calibration data
 
 
-function testTriangulationDavid()
+function Linear_Triangulation()
   close all
   clear all
 
-  P = [
-      -1.81066 0.00000 0.00000 0.00000;
-      0.00000 2.41421 0.00000 0.00000;
-      0.00000 0.00000 1.00000 1.50000
-      ];
+  % Load calibration data
+  cd('Input_Images');
+  run('calib.m');
+  cd('..');
+  
+  % Display images for point selection
+  fprintf('Select corresponding points in both images.\n');
+  fprintf('Left-click to add a point, right-click when done.\n\n');
+  
+  % Select points in first image
+  figure('Name', 'Image 1 - Select Points');
+  imshow(im1);
+  title('Image 1: Click to select points (right-click when done)');
+  [x1, y1] = getpts;
+  numPts = length(x1);
+  
+  if numPts == 0
+      error('No points selected!');
+  end
+  
+  close;
+  
+  % Select corresponding points in second image
+  figure('Name', 'Image 2 - Select Corresponding Points');
+  imshow(im2);
+  title(sprintf('Image 2: Select %d corresponding points in SAME ORDER', numPts));
+  [x2, y2] = getpts;
+  
+  if length(x2) ~= numPts
+      error('Number of points must match! Selected %d in image 1, but %d in image 2', numPts, length(x2));
+  end
+  
+  close;
+  
+  % Build projection matrices
+  % Camera 1 is at origin: P1 = K1 * [I | 0]
+  P = cam1 * [eye(3), zeros(3,1)];
+  
+  % Camera 2 is translated by baseline along X-axis: P2 = K2 * [I | t]
+  % The baseline is the distance between cameras
+  Q = cam2 * [eye(3), [-baseline; 0; 0]];
+  
+  % Create homogeneous coordinates from selected points
+  PPtsHom = [x1'; y1'; ones(1, numPts)];
+  QPtsHom = [x2'; y2'; ones(1, numPts)];
 
-  Q =  [
-      -0.36118 0.00000 0.00000 0.00000
-      0.00000 2.00875 1.33916 0.00000
-      0.00000 -0.55470 0.83205 1.80278
-      ];
-
-
-  % homogenous 3D coordinates
-  Pts =  [
-          -0.2 -0.2 -0.2 -0.2 0.2 0.2 0.2 0.2;
-          -0.2 -0.2 0.2 0.2 -0.2 -0.2 0.2 0.2;
-          -0.2 0.2 -0.2 0.2 -0.2 0.2 -0.2 0.2;
-          1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
-      ];    
-
-  numPts = length(Pts(1,:));
-
-  % project points
-  PPtsHom = P*Pts;
-  QPtsHom = Q*Pts;
-
-  % normalize for homogenous scaling
+  % normalize for homogenous scaling (already done by getpts, but ensure)
   for i = 1:3
       PPtsHom(i, :) = PPtsHom(i, :) ./ PPtsHom(3, :);
       QPtsHom(i, :) = QPtsHom(i, :) ./ QPtsHom(3, :);
@@ -108,7 +128,61 @@ function testTriangulationDavid()
   for i = 1:4
       TriangulatedPoints(i, :) = TriangulatedPoints(i, :) ./ TriangulatedPoints(4, :);
   end
-  figure()
-  scatter3(TriangulatedPoints(1, :), TriangulatedPoints(2, :), TriangulatedPoints(3, :));
+  
+  % Display results
+  fprintf('\nTriangulated 3D Points:\n');
+  fprintf('Point\t   X\t\t   Y\t\t   Z\n');
+  fprintf('-----\t-------\t-------\t-------\n');
+  for i = 1:numPts
+      fprintf('%d\t%8.3f\t%8.3f\t%8.3f\n', i, ...
+              TriangulatedPoints(1, i), TriangulatedPoints(2, i), TriangulatedPoints(3, i));
+  end
+  
+  % Show selected points on images
+  figure('Name', 'Selected Point Correspondences');
+  subplot(1, 2, 1);
+  imshow(im1);
+  hold on;
+  plot(x1, y1, 'r+', 'MarkerSize', 15, 'LineWidth', 2);
+  for i = 1:numPts
+      text(x1(i)+10, y1(i), sprintf('%d', i), 'Color', 'yellow', 'FontSize', 12, 'FontWeight', 'bold');
+  end
+  title('Image 1 - Selected Points');
+  hold off;
+  
+  subplot(1, 2, 2);
+  imshow(im2);
+  hold on;
+  plot(x2, y2, 'r+', 'MarkerSize', 15, 'LineWidth', 2);
+  for i = 1:numPts
+      text(x2(i)+10, y2(i), sprintf('%d', i), 'Color', 'yellow', 'FontSize', 12, 'FontWeight', 'bold');
+  end
+  title('Image 2 - Corresponding Points');
+  hold off;
+  
+  % Plot 3D reconstruction
+  figure('Name', '3D Reconstruction')
+  scatter3(TriangulatedPoints(1, :), TriangulatedPoints(2, :), TriangulatedPoints(3, :), 100, 'filled');
+  hold on;
+  
+  % Add point labels
+  for i = 1:numPts
+      text(TriangulatedPoints(1, i), TriangulatedPoints(2, i), TriangulatedPoints(3, i), ...
+           sprintf('  P%d', i), 'FontSize', 10);
+  end
+  
+  % Plot camera positions
+  scatter3(0, 0, 0, 200, 'r', 'filled', 'MarkerEdgeColor', 'k');
+  text(0, 0, 0, '  Cam1', 'FontSize', 12, 'Color', 'r', 'FontWeight', 'bold');
+  
+  scatter3(-baseline, 0, 0, 200, 'b', 'filled', 'MarkerEdgeColor', 'k');
+  text(-baseline, 0, 0, '  Cam2', 'FontSize', 12, 'Color', 'b', 'FontWeight', 'bold');
+  
+  xlabel('X (mm)');
+  ylabel('Y (mm)');
+  zlabel('Z (mm)');
   title('Triangulated Points');
+  grid on;
   axis equal;
+  view(3);
+  hold off;
