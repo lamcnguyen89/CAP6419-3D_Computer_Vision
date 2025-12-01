@@ -223,15 +223,15 @@ __marimo__/
 *.joblib
 *.mat
 
-# Images/Videos
-*.jpg
-*.jpeg
-*.png
-*.bmp
-*.gif
-*.tif
-*.tiff
-*.webp
+# Videos only (images are now tracked)
+# *.jpg
+# *.jpeg
+# *.png
+# *.bmp
+# *.gif
+# *.tif
+# *.tiff
+# *.webp
 *.mp4
 *.avi
 *.mov
