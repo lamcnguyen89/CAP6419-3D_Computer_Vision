@@ -40,7 +40,7 @@ function linkbackproj()
       % Select corresponding points in second image
       figure('Name', sprintf('%s - Image 2 - Select Corresponding Points', folderName));
       imshow(im2);
-      title(sprintf('%s - Image 2: Select %d corresponding points in SAME ORDER', folderName, numPts));
+      title(sprintf('%s - Image 2: Select %d corresponding points in SAME ORDER', folderName, numPts-1));
       [x2, y2] = getpts;
       
       if length(x2) ~= numPts
