@@ -4,7 +4,7 @@
 % Modified to work with actual images and calibration data
 
 
-function Linear_Triangulation()
+function linkbackproj()
   close all
   clear all
 
