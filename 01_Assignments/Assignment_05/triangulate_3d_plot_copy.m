@@ -160,7 +160,16 @@ ylabel('Y (mm)');
 zlabel('Z (mm)');
 title('3D Reconstruction from Stereo Triangulation');
 grid on;
-axis equal;
+
+% Calculate ranges for custom axis scaling
+xRange = max(points3D_filtered(:,1)) - min(points3D_filtered(:,1));
+yRange = max(points3D_filtered(:,2)) - min(points3D_filtered(:,2));
+zRange = max(points3D_filtered(:,3)) - min(points3D_filtered(:,3));
+
+% Make x and y axes 3x larger relative to their data range
+xlim([min(points3D_filtered(:,1)) - xRange, max(points3D_filtered(:,1)) + xRange]);
+ylim([min(points3D_filtered(:,2)) - yRange, max(points3D_filtered(:,2)) + yRange]);
+zlim([min(points3D_filtered(:,3)), max(points3D_filtered(:,3))]);
 
 % Set viewing angle
 view(45, 30);
@@ -186,7 +195,12 @@ ylabel('Y (mm)');
 zlabel('Z (mm)');
 title('3D Reconstruction - Top View');
 grid on;
-axis equal;
+
+% Set custom axis limits
+xlim([min(points3D_filtered(:,1)) - xRange, max(points3D_filtered(:,1)) + xRange]);
+ylim([min(points3D_filtered(:,2)) - yRange, max(points3D_filtered(:,2)) + yRange]);
+zlim([min(points3D_filtered(:,3)), max(points3D_filtered(:,3))]);
+
 view(0, 90);  % Top view
 
 %% Step 10: Side view
@@ -198,7 +212,12 @@ ylabel('Y (mm)');
 zlabel('Z (mm)');
 title('3D Reconstruction - Side View');
 grid on;
-axis equal;
+
+% Set custom axis limits
+xlim([min(points3D_filtered(:,1)) - xRange, max(points3D_filtered(:,1)) + xRange]);
+ylim([min(points3D_filtered(:,2)) - yRange, max(points3D_filtered(:,2)) + yRange]);
+zlim([min(points3D_filtered(:,3)), max(points3D_filtered(:,3))]);
+
 view(90, 0);  % Side view
 
 % Return to original directory
