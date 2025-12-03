@@ -6,6 +6,7 @@ function sigtonoisecalculator()
     figureFolder = 'SNR_Input_Figures';
     
     % Define file arrays
+    % Make sure the order matches between ground truth and reconstructed files
     groundTruthFiles = {
         'triangulate_3d_plot_globe_perspective.fig';
         'triangulate_3d_plot_Newkuba_perspective.fig';
